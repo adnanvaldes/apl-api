@@ -5,56 +5,62 @@ from sqlalchemy.orm import sessionmaker, relationship, Session
 from pydantic import BaseModel
 from typing import List, Optional
 
-# Database configuration
 SQLALCHEMY_DATABASE_URL = "sqlite:///apl.db"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# PatternLink Model
+
 class PatternLink(Base):
-    __tablename__ = 'PatternLinks'  # Use lowercase for table names
+    __tablename__ = 'PatternLinks'
     pattern_id = Column(Integer, ForeignKey('Patterns.id'), primary_key=True)
     linked_pattern_id = Column(Integer, ForeignKey('Patterns.id'), primary_key=True)
 
-# Pattern Model
+
 class Pattern(Base):
-    __tablename__ = 'Patterns'  # Use lowercase for table names
+    __tablename__ = 'Patterns'
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     problem = Column(String)
     solution = Column(String)
     refs = Column(String, nullable=True)
 
-    # Relationship to itself through PatternLink
+
     forward_links = relationship(
         "Pattern",
-        secondary="PatternLinks",  # Use the lowercase table name
+        secondary="PatternLinks",
         primaryjoin="Pattern.id == PatternLink.pattern_id",
         secondaryjoin="Pattern.id == PatternLink.linked_pattern_id",
         backref="backlinks"
     )
 
-# Pydantic Models
-class PatternBase(BaseModel):
-    name: str
-    problem: str
-    solution: str
-    refs: Optional[str] = None
 
-class PatternCreate(PatternBase):
-    pass
 
-class PatternResponse(PatternBase):
+class PatternLinkResponse(BaseModel):
     id: int
-    forward_links: List[Optional[PatternBase]] = []
-    backlinks: List[Optional[PatternBase]] = []
+    name: str
 
     class Config:
         orm_mode = True
 
-# Dependency to get DB session
+
+class PatternResponse(BaseModel):
+    id: int
+    name: str
+    problem: str
+    solution: str
+    refs: Optional[str] = None
+    forward_links: List[PatternLinkResponse] = [] 
+    backlinks: List[PatternLinkResponse] = [] 
+
+    class Config:
+        orm_mode = True
+
+
+class PatternResponseFull(PatternResponse):
+    forward_links: List[PatternResponse] = []
+    backlinks: List[PatternResponse] = []
 
 def get_db():
     db = SessionLocal()
@@ -63,11 +69,10 @@ def get_db():
     finally:
         db.close()
 
-# FastAPI app
 
 app = FastAPI()
 
-# Utility function to get pattern by ID or name
+
 def get_pattern(db: Session, id: Optional[int] = None, name: Optional[str] = None):
     if id:
         return db.query(Pattern).filter(Pattern.id == id).first()
@@ -76,18 +81,100 @@ def get_pattern(db: Session, id: Optional[int] = None, name: Optional[str] = Non
     else:
         return None
 
-# Endpoint to get pattern by ID
-@app.get("/patterns/{id}/", response_model=PatternResponse)
-def get_pattern_by_id(id: int, db: Session = Depends(get_db)):
+
+@app.get("/patterns/{id}")
+def get_pattern_by_id(id: int, expand: bool = False, db: Session = Depends(get_db)):
     pattern = get_pattern(db, id=id)
     if not pattern:
         raise HTTPException(status_code=404, detail="Pattern not found")
-    return pattern
+    
 
-# Endpoint to get pattern by name
-@app.get("/patterns/name/{pattern_name}", response_model=PatternResponse)
-def get_pattern_by_name(pattern_name: str, db: Session = Depends(get_db)):
+    if expand:
+        return PatternResponseFull(
+            id=pattern.id,
+            name=pattern.name,
+            problem=pattern.problem,
+            solution=pattern.solution,
+            refs=pattern.refs,
+            forward_links=[
+                PatternResponse(
+                    id=link.id, 
+                    name=link.name,
+                    problem=link.problem,
+                    solution=link.solution,
+                    refs=link.refs
+                ) for link in pattern.forward_links
+            ],
+            backlinks=[
+                PatternResponse(
+                    id=link.id, 
+                    name=link.name,
+                    problem=link.problem,
+                    solution=link.solution,
+                    refs=link.refs
+                ) for link in pattern.backlinks
+            ]
+        )
+    else:
+        return PatternResponse(
+            id=pattern.id,
+            name=pattern.name,
+            problem=pattern.problem,
+            solution=pattern.solution,
+            refs=pattern.refs,
+            forward_links=[
+                PatternLinkResponse(id=link.id, name=link.name) for link in pattern.forward_links
+            ],
+            backlinks=[
+                PatternLinkResponse(id=link.id, name=link.name) for link in pattern.backlinks
+            ]
+        )
+
+
+@app.get("/patterns/name/{pattern_name}")
+def get_pattern_by_name(pattern_name: str, expand: bool = False, db: Session = Depends(get_db)):
     pattern = get_pattern(db, name=pattern_name)
     if not pattern:
         raise HTTPException(status_code=404, detail="Pattern not found")
-    return pattern
+    
+
+    if expand:
+        return PatternResponseFull(
+            id=pattern.id,
+            name=pattern.name,
+            problem=pattern.problem,
+            solution=pattern.solution,
+            refs=pattern.refs,
+            forward_links=[
+                PatternResponse(
+                    id=link.id, 
+                    name=link.name,
+                    problem=link.problem,
+                    solution=link.solution,
+                    refs=link.refs
+                ) for link in pattern.forward_links
+            ],
+            backlinks=[
+                PatternResponse(
+                    id=link.id, 
+                    name=link.name,
+                    problem=link.problem,
+                    solution=link.solution,
+                    refs=link.refs
+                ) for link in pattern.backlinks
+            ]
+        )
+    else:
+        return PatternResponse(
+            id=pattern.id,
+            name=pattern.name,
+            problem=pattern.problem,
+            solution=pattern.solution,
+            refs=pattern.refs,
+            forward_links=[
+                PatternLinkResponse(id=link.id, name=link.name) for link in pattern.forward_links
+            ],
+            backlinks=[
+                PatternLinkResponse(id=link.id, name=link.name) for link in pattern.backlinks
+            ]
+        )
