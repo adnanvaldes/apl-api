@@ -147,4 +147,5 @@ def main():
 
     load_data_to_database()
 
-main()
+if __name__ == "__main__":
+    main()
