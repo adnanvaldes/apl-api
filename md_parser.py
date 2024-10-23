@@ -1,21 +1,23 @@
 import os
 import re
 import sys
+import sqlite3
 
 PATTERNS_DIR = "/home/einhard/Desktop/apl-md/Patterns/"
+DATABASE = "apl.db"
 
 # Matches wiki-link style patterns eg. [[Independent Regions (1)]]
-RELATED_RE = re.compile(r"\[\[(.*?) \((\d+)\)\]\]")
+RELATED_PATTERN_RE = re.compile(r"\[\[(.*?) \((\d+)\)\]\]")
 
-related_links = {}
-patterns_data = []
+links = {}
+backlinks = {}
+patterns_data = {}
 
 def strip_angle_bracket(text):
     """
     Remove ">" from start of line in block quotes and citations
     """
     stripped_lines = [line.lstrip(">").strip() for line in text.splitlines()]
-    print("\n".join(stripped_lines).strip())
     return "\n".join(stripped_lines).strip()
 
 def split_content(text):
@@ -25,7 +27,7 @@ def split_content(text):
 
     try:
         # Split the text first so that references don't match in the "related" section later
-        body, references = text.split("---")
+        body, references = text.split("---\n")
     except IndexError:
         print("Could not find references section (looked for '---')")
         sys.exit(IndexError)
@@ -39,7 +41,6 @@ def split_content(text):
     except AttributeError:
         raise ValueError("Missing one or more sections")
 
-
     return problem, solution, related, references.strip()
 
 def extract_name_and_id(filename):
@@ -49,9 +50,101 @@ def extract_name_and_id(filename):
         pattern_name = match.group(1).strip()
         pattern_id = int(match.group(2))
 
-    return pattern_name, pattern_id
+    return pattern_name, pattern_id    
+
+def extract_links(text):
+    """
+    Extracts all forward links from Related Patterns section of the text
+
+    Returns a list of tuples, where the first item in the tuple is the pattern name, second is id
+    """
+    return re.findall(RELATED_PATTERN_RE, text)
+
+def create_database():
+    """
+    Creates a SQLite database with the required schema
+    """
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+
+    # Create Patterns table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS Patterns (
+    id INTEGER PRIMARY KEY, 
+    name TEXT NOT NULL,
+    problem TEXT NOT NULL,
+    solution TEXT NOT NULL,
+    refs TEXT
+);
+    """)
+
+    # Create PatternLinks table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS PatternLinks (
+    pattern_id INTEGER,
+    linked_pattern_id INTEGER,
+    PRIMARY KEY (pattern_id, linked_pattern_id),
+    FOREIGN KEY (pattern_id) REFERENCES Patterns(id) ON DELETE CASCADE,
+    FOREIGN KEY (linked_pattern_id) REFERENCES Patterns(id) ON DELETE CASCADE
+);
+    """)
+
+    conn.commit()
+    conn.close()
+
+def load_data_to_database():
+    """
+    Loads the patterns and links data into the SQLite database
+    """
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+
+    # Insert patterns data
+    for pattern_id, (id, name, problem, solution, related, references) in patterns_data.items():
+        cur.execute("""
+        INSERT INTO Patterns (id, name, problem, solution, refs)
+        VALUES (?, ?, ?, ?, ?)
+        """, (id, name, problem, solution, references))
+
+    # Insert forward and backward links into PatternLinks table
+    for pattern_id, linked_patterns in links.items():
+        for linked_pattern in linked_patterns:
+            cur.execute("""
+            INSERT OR IGNORE INTO PatternLinks (pattern_id, linked_pattern_id)
+            VALUES (?, ?)
+            """, (pattern_id, linked_pattern))
+
+    conn.commit()
+    conn.close()
 
 def main():
+
+    create_database()
+
     for filename in os.listdir(PATTERNS_DIR):
         if filename.endswith(".md"):
-            extract_name_and_id(filename)
+
+            pattern_name, pattern_id = extract_name_and_id(filename)
+
+            with open(os.path.join(PATTERNS_DIR, filename), "r") as file:
+                content = file.read()
+                content = strip_angle_bracket(content)
+                problem, solution, related, references = split_content(content)
+                patterns_data[pattern_id] = (pattern_id, pattern_name, problem, solution, related, references)
+                
+                # Corrected to extract links from the 'related' section, not 'references'
+                links[pattern_id] = [int(link[1]) for link in extract_links(related)]
+
+    for pattern_id in links:
+        backlinks[pattern_id] = []
+
+    for pattern_id, linked_patterns in links.items():
+        for linked_pattern in linked_patterns:
+            if linked_pattern in backlinks:
+                backlinks[linked_pattern].append(pattern_id)
+            else:
+                backlinks[linked_pattern] = [pattern_id]
+
+    load_data_to_database()
+
+main()

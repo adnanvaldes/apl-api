@@ -1,99 +1,93 @@
-from typing import Annotated, List, Optional
-from sqlalchemy.orm import joinedload
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Table
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship, Session
+from pydantic import BaseModel
+from typing import List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query
-from sqlmodel import Field, Session, SQLModel, create_engine, select, Relationship
+# Database configuration
+SQLALCHEMY_DATABASE_URL = "sqlite:///apl.db"
 
-class Related_Patterns(SQLModel, table=True):
-    __tablename__ = "related_patterns"
-    pattern_id: int = Field(foreign_key="pattern.id", primary_key=True)
-    related_patterns_id: int = Field(foreign_key="pattern.id", primary_key=True)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-class Backlinks(SQLModel, table=True):
-    __tablename__ = "backlinks"
-    pattern_id: int = Field(foreign_key="pattern.id", primary_key=True)
-    backlink_pattern_id: int = Field(foreign_key="pattern.id", primary_key=True)
+# PatternLink Model
+class PatternLink(Base):
+    __tablename__ = 'PatternLinks'  # Use lowercase for table names
+    pattern_id = Column(Integer, ForeignKey('Patterns.id'), primary_key=True)
+    linked_pattern_id = Column(Integer, ForeignKey('Patterns.id'), primary_key=True)
 
-class Pattern(SQLModel, table=True):
-    __tablename__ = "pattern"
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
+# Pattern Model
+class Pattern(Base):
+    __tablename__ = 'Patterns'  # Use lowercase for table names
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    problem = Column(String)
+    solution = Column(String)
+    refs = Column(String, nullable=True)
+
+    # Relationship to itself through PatternLink
+    forward_links = relationship(
+        "Pattern",
+        secondary="PatternLinks",  # Use the lowercase table name
+        primaryjoin="Pattern.id == PatternLink.pattern_id",
+        secondaryjoin="Pattern.id == PatternLink.linked_pattern_id",
+        backref="backlinks"
+    )
+
+# Pydantic Models
+class PatternBase(BaseModel):
+    name: str
     problem: str
     solution: str
-    related_text: str
+    refs: Optional[str] = None
 
-    # Related patterns (forward links to other patterns)
-    related_patterns: List["Pattern"] = Relationship(
-        back_populates="backlinks", 
-        link_model=Related_Patterns,
-        sa_relationship_kwargs={
-            "primaryjoin": "Pattern.id == Related_Patterns.pattern_id",
-            "secondaryjoin": "Pattern.id == Related_Patterns.related_patterns_id",
-            "foreign_keys": "[Related_Patterns.pattern_id, Related_Patterns.related_patterns_id]"
-        }
-    )
+class PatternCreate(PatternBase):
+    pass
 
-    # Backlinks (patterns that link to this pattern)
-    backlinks: List["Pattern"] = Relationship(
-        back_populates="related_patterns", 
-        link_model=Backlinks,
-        sa_relationship_kwargs={
-            "primaryjoin": "Pattern.id == Backlinks.backlink_pattern_id",
-            "secondaryjoin": "Pattern.id == Backlinks.pattern_id",
-        }
-    )
+class PatternResponse(PatternBase):
+    id: int
+    forward_links: List[Optional[PatternBase]] = []
+    backlinks: List[Optional[PatternBase]] = []
 
+    class Config:
+        orm_mode = True
 
-sqlite_file_name = "apl.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
+# Dependency to get DB session
 
-connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, connect_args=connect_args)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-def get_session():
-    with Session(engine) as session:
-        yield session
-
-SessionDep = Annotated[Session, Depends(get_session)]
+# FastAPI app
 
 app = FastAPI()
 
-# @app.on_event("startup")
-# def on_startup():
-#     create_db_and_tables()
+# Utility function to get pattern by ID or name
+def get_pattern(db: Session, id: Optional[int] = None, name: Optional[str] = None):
+    if id:
+        return db.query(Pattern).filter(Pattern.id == id).first()
+    elif name:
+        return db.query(Pattern).filter(Pattern.name == name).first()
+    else:
+        return None
 
-@app.get("/patterns/{id}")
-async def get_pattern(id: int, session: SessionDep):
-    # Query the pattern by ID and load related patterns and backlinks eagerly
-    pattern = session.exec(
-    select(Pattern)
-    .where(Pattern.id == id)
-    ).first()
-
+# Endpoint to get pattern by ID
+@app.get("/patterns/{id}/", response_model=PatternResponse)
+def get_pattern_by_id(id: int, db: Session = Depends(get_db)):
+    pattern = get_pattern(db, id=id)
     if not pattern:
         raise HTTPException(status_code=404, detail="Pattern not found")
-    
-    # Debug: Print all related patterns and backlinks
-    all_related_patterns = [{"id": p.id, "name": p.name} for p in pattern.related_patterns]
-    all_backlinks = [{"id": p.id, "name": p.name} for p in pattern.backlinks]
+    return pattern
 
-    print(pattern)
-    print("\n\n\n\n")
-    print(pattern.backlinks)
-    print("\n\n\n\n")
-    # Return the pattern details along with related patterns and backlinks
-    return {
-        "id": pattern.id,
-        "name": pattern.name,
-        "problem": pattern.problem,
-        "solution": pattern.solution,
-        "related_text": pattern.related_text,
-        "related_patterns": all_related_patterns,
-        "backlinks": all_backlinks
-    }
-
-@app.get("/users")
-async def read_users():
-    return ["Rick", "Morty"]
-
-
+# Endpoint to get pattern by name
+@app.get("/patterns/name/{pattern_name}", response_model=PatternResponse)
+def get_pattern_by_name(pattern_name: str, db: Session = Depends(get_db)):
+    pattern = get_pattern(db, name=pattern_name)
+    if not pattern:
+        raise HTTPException(status_code=404, detail="Pattern not found")
+    return pattern
