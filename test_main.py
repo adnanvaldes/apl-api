@@ -1,4 +1,5 @@
 # Import dependencies
+import os
 import pytest
 from sqlmodel import SQLModel, Session, create_engine
 from main import (
@@ -33,6 +34,8 @@ def setup_database():
     SQLModel.metadata.create_all(bind=engine)
     yield
     SQLModel.metadata.drop_all(bind=engine)
+    os.remove("test_apl.db")
+
 
 
 @pytest.fixture(scope="function")
