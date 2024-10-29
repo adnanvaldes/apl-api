@@ -41,7 +41,8 @@ engine = create_engine(sqlite_url, echo=True)
 SessionDep = Annotated[Session, Depends(get_session)]
 app = FastAPI()
 
-def get_pattern(session: Session, pattern_id: int, depth: int) -> PatternResponse:
+@app.get("/patterns/{id}", response_model=PatternResponse)
+def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
     pattern = session.get(Patterns, pattern_id)
     if not pattern:
         raise HTTPException(status_code=404, detail="Pattern not found")
@@ -55,7 +56,7 @@ def get_pattern(session: Session, pattern_id: int, depth: int) -> PatternRespons
             select(Patterns).where(Patterns.id.in_(forward_link_ids))
         ).all()
         forward_link_responses = [
-            get_pattern(session, link.id, depth - 1) for link in forward_links
+            get_pattern_by_id(session, link.id, depth - 1) for link in forward_links
         ]
 
         # Recursively fetch backlinks
@@ -66,7 +67,7 @@ def get_pattern(session: Session, pattern_id: int, depth: int) -> PatternRespons
             select(Patterns).where(Patterns.id.in_(backlink_ids))
         ).all()
         backlink_responses = [
-            get_pattern(session, link.id, depth - 1) for link in backlinks
+            get_pattern_by_id(session, link.id, depth - 1) for link in backlinks
         ]
     else:
         forward_link_responses = []
@@ -85,13 +86,8 @@ def get_pattern(session: Session, pattern_id: int, depth: int) -> PatternRespons
         backlinks=backlink_responses
     )
 
-@app.get("/patterns/{id}", response_model=PatternResponse)
-def get_pattern_by_id(id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
-    return get_pattern(session, id, depth)
-
-
 @app.get("/patterns/name/{pattern_name}", response_model=PatternResponse)
-def get_pattern_by_name(pattern_name: str, session: SessionDep) -> PatternResponse:
+def get_pattern_by_name(pattern_name: str, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
     # Query for the main pattern
     statement = select(Patterns).where(Patterns.name == pattern_name)
     pattern = session.exec(statement).first()
@@ -99,23 +95,32 @@ def get_pattern_by_name(pattern_name: str, session: SessionDep) -> PatternRespon
     if not pattern:
         raise HTTPException(status_code=404, detail="Pattern not found")
 
-    # Fetch forward links as PatternResponse objects
-    forward_link_ids = session.exec(
-        select(PatternLinks.linked_pattern_id).where(PatternLinks.pattern_id == pattern.id)
-    ).all()
-    forward_links = session.exec(
-        select(Patterns).where(Patterns.id.in_(forward_link_ids))
-    ).all()
-    forward_link_responses = [PatternResponse.from_orm(link) for link in forward_links]
+    if depth > 0:
+        # Recursively fetch forward links
+        forward_link_ids = session.exec(
+            select(PatternLinks.linked_pattern_id).where(PatternLinks.pattern_id == pattern.id)
+        ).all()
+        forward_links = session.exec(
+            select(Patterns).where(Patterns.id.in_(forward_link_ids))
+        ).all()
+        forward_link_responses = [
+            get_pattern_by_name(session, link.id, depth - 1) for link in forward_links
+        ]
 
-    # Fetch backlinks as PatternResponse objects
-    backlink_ids = session.exec(
-        select(PatternLinks.pattern_id).where(PatternLinks.linked_pattern_id == pattern.id)
-    ).all()
-    backlinks = session.exec(
-        select(Patterns).where(Patterns.id.in_(backlink_ids))
-    ).all()
-    backlink_responses = [PatternResponse.from_orm(link) for link in backlinks]
+        # Recursively fetch backlinks
+        backlink_ids = session.exec(
+            select(PatternLinks.pattern_id).where(PatternLinks.linked_pattern_id == pattern.id)
+        ).all()
+        backlinks = session.exec(
+            select(Patterns).where(Patterns.id.in_(backlink_ids))
+        ).all()
+        backlink_responses = [
+            get_pattern_by_name(session, link.id, depth - 1) for link in backlinks
+        ]
+    else:
+        forward_link_responses = []
+        backlink_responses = []
+
 
     # Return the pattern data with links
     return PatternResponse(

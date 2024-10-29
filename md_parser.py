@@ -8,10 +8,6 @@ DATABASE = "apl.db"
 
 # Matches wiki-link style patterns e.g., [[Independent Regions (1)]]
 RELATED_PATTERN_RE = re.compile(r"\[\[(.*?) \((\d+)\)\]\]")
-# Matches citation information in the references section
-CITATION_RE = re.compile(
-    r"> \[!cite\]- .+? p\. (\d+).*\n> (#(low|medium|high)-confidence).*?\n> (#[\w\/-]+)"
-)
 
 links = {}
 backlinks = {}
@@ -92,8 +88,6 @@ def map_confidence_and_tag(text):
     
     # Remove "#" from beginning of string
     return confidence_map[match[0]], match[1][1:]
-
-
 
 def create_database():
     """
