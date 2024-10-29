@@ -41,8 +41,7 @@ engine = create_engine(sqlite_url, echo=True)
 SessionDep = Annotated[Session, Depends(get_session)]
 app = FastAPI()
 
-@app.get("/patterns/{id}", response_model=PatternResponse)
-def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
+def get_pattern(pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
     pattern = session.get(Patterns, pattern_id)
     if not pattern:
         raise HTTPException(status_code=404, detail="Pattern not found")
@@ -56,7 +55,7 @@ def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int
             select(Patterns).where(Patterns.id.in_(forward_link_ids))
         ).all()
         forward_link_responses = [
-            get_pattern_by_id(session, link.id, depth - 1) for link in forward_links
+            get_pattern_by_id(pattern_id=link.id,session=session, depth=depth - 1) for link in forward_links
         ]
 
         # Recursively fetch backlinks
@@ -67,7 +66,7 @@ def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int
             select(Patterns).where(Patterns.id.in_(backlink_ids))
         ).all()
         backlink_responses = [
-            get_pattern_by_id(session, link.id, depth - 1) for link in backlinks
+            get_pattern_by_id(pattern_id=link.id, session=session, depth=depth - 1) for link in backlinks
         ]
     else:
         forward_link_responses = []
@@ -86,10 +85,14 @@ def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int
         backlinks=backlink_responses
     )
 
+@app.get("/patterns/{id}", response_model=PatternResponse)
+def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
+    return get_pattern(pattern_id=pattern_id, session=session, depth=depth)
+
 @app.get("/patterns/name/{pattern_name}", response_model=PatternResponse)
 def get_pattern_by_name(pattern_name: str, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
     # Query for the main pattern
-    statement = select(Patterns).where(Patterns.name == pattern_name)
+    statement = select(Patterns).where(Patterns.name == pattern_name.lower())
     pattern = session.exec(statement).first()
 
     if not pattern:
@@ -104,7 +107,7 @@ def get_pattern_by_name(pattern_name: str, session: SessionDep, depth: Annotated
             select(Patterns).where(Patterns.id.in_(forward_link_ids))
         ).all()
         forward_link_responses = [
-            get_pattern_by_name(session, link.id, depth - 1) for link in forward_links
+            get_pattern_by_id(pattern_id=link.id, session=session, depth=depth - 1) for link in forward_links
         ]
 
         # Recursively fetch backlinks
@@ -115,7 +118,7 @@ def get_pattern_by_name(pattern_name: str, session: SessionDep, depth: Annotated
             select(Patterns).where(Patterns.id.in_(backlink_ids))
         ).all()
         backlink_responses = [
-            get_pattern_by_name(session, link.id, depth - 1) for link in backlinks
+            get_pattern_by_id(pattern_id=link.id, session=session, depth=depth - 1) for link in backlinks
         ]
     else:
         forward_link_responses = []
