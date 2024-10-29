@@ -61,11 +61,11 @@ def extract_links(text):
 
 def extract_citation_details(references_text):
     """
-    Extracts location, confidence, and tag from references section
+    Extracts page_number, confidence, and tag from references section
     """
-    location = extract_page_referece(references_text)
+    page_number = extract_page_referece(references_text)
     confidence, tag = map_confidence_and_tag(references_text)
-    return location, confidence, tag.lower()
+    return page_number, confidence, tag.lower()
 
 
 def extract_page_referece(text):
@@ -103,7 +103,7 @@ def create_database():
         name TEXT NOT NULL,
         problem TEXT NOT NULL,
         solution TEXT NOT NULL,
-        location INTEGER,
+        page_number INTEGER,
         confidence INTEGER,
         tag TEXT
     );
@@ -131,11 +131,11 @@ def load_data_to_database():
     cur = conn.cursor()
 
     # Insert patterns data
-    for pattern_id, (id, name, problem, solution, related, location, confidence, tag) in patterns_data.items():
+    for pattern_id, (id, name, problem, solution, related, page_number, confidence, tag) in patterns_data.items():
         cur.execute("""
-        INSERT INTO Patterns (id, name, problem, solution, location, confidence, tag)
+        INSERT INTO Patterns (id, name, problem, solution, page_number, confidence, tag)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (id, name, problem, solution, location, confidence, tag))
+        """, (id, name, problem, solution, page_number, confidence, tag))
 
     # Insert forward and backward links into PatternLinks table
     for pattern_id, linked_patterns in links.items():
@@ -160,10 +160,10 @@ def main():
                 content = strip_angle_bracket(content)
                 problem, solution, related, references = split_content(content)
 
-                # Extract location, confidence, and tag from references section
-                location, confidence, tag = extract_citation_details(references)
+                # Extract page_number, confidence, and tag from references section
+                page_number, confidence, tag = extract_citation_details(references)
 
-                patterns_data[pattern_id] = (pattern_id, pattern_name, problem, solution, related, location, confidence, tag)
+                patterns_data[pattern_id] = (pattern_id, pattern_name, problem, solution, related, page_number, confidence, tag)
                 
                 # Extract links from the 'related' section, not 'references'
                 links[pattern_id] = [int(link[1]) for link in extract_links(related)]

@@ -12,7 +12,7 @@ class Patterns(SQLModel, table=True):
     name: str
     problem: str
     solution: str
-    location: int
+    page_number: int
     confidence: int
     tag: str
 
@@ -21,7 +21,7 @@ class PatternResponse(BaseModel):
     name: str
     problem: str
     solution: str
-    location: int
+    page_number: int
     confidence: int
     tag: str
     forward_links: List["PatternResponse"] = []
@@ -78,14 +78,14 @@ def get_pattern(pattern_id: int, session: SessionDep, depth: Annotated[int, Quer
         name=pattern.name.title(),
         problem=pattern.problem,
         solution=pattern.solution,
-        location=pattern.location,
+        page_number=pattern.page_number,
         confidence=pattern.confidence,
         tag=pattern.tag,
         forward_links=forward_link_responses,
         backlinks=backlink_responses
     )
 
-@app.get("/patterns/{id}", response_model=PatternResponse)
+@app.get("/patterns/id/{id}", response_model=PatternResponse)
 def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
     return get_pattern(pattern_id=pattern_id, session=session, depth=depth)
 
@@ -96,27 +96,28 @@ def get_pattern_by_name(pattern_name: str, session: SessionDep, depth: Annotated
 
     return get_pattern(pattern_id=pattern.id, session=session, depth=depth)
 
-@app.get("/patterns/location/{location}", response_model=Patterns)
-def get_pattern_by_location(location: int, session: SessionDep) -> Patterns:
-    # Find the pattern with the highest location less than or equal to the specified location
-    statement = select(Patterns).where(Patterns.location <= location).order_by(Patterns.location.desc())
+@app.get("/patterns/find/{name}", response_model=List[Patterns])
+def find_pattern_by_name(name: str, session: SessionDep) -> List[Patterns]:
+    statement = select(Patterns).where(Patterns.name.like(f"%{name}%"))
+    return session.exec(statement).all()
+
+@app.get("/patterns/page_number/{page_number}", response_model=Patterns)
+def get_pattern_by_page_number(page_number: int, session: SessionDep) -> Patterns:
+    # Find the pattern with the highest page_number less than or equal to the specified page_number
+    statement = select(Patterns).where(Patterns.page_number <= page_number).order_by(Patterns.page_number.desc())
     closest_pattern = session.exec(statement).first()
 
     if closest_pattern is None:
-        raise HTTPException(status_code=404, detail="No pattern found at or below the specified location, first pattern at location = 10")
+        raise HTTPException(status_code=404, detail="No pattern found at or below the specified page number, first pattern at page_number = 10")
 
     return closest_pattern
 
 @app.get("/patterns/confidence/{confidence}", response_model=List[Patterns])
 def get_patterns_by_confidence(confidence: int, session: SessionDep) -> List[Patterns]:
     statement = select(Patterns).where(Patterns.confidence == confidence)
-    patterns = session.exec(statement).all()
-
-    return patterns
+    return session.exec(statement).all()
 
 @app.get("/patterns/tag/{tag}", response_model=List[Patterns])
 def get_patterns_by_tag(tag: str, session: SessionDep) -> List[Patterns]:
     statement = select(Patterns).where(Patterns.tag.like(f"%{tag}%"))
-    patterns = session.exec(statement).all()
-
-    return patterns
+    return session.exec(statement).all()
