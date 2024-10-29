@@ -3,6 +3,9 @@ from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from pydantic import BaseModel
 
+import os
+from parser import load_data
+
 class PatternLinks(SQLModel, table=True):
     pattern_id: int = Field(foreign_key="patterns.id", primary_key=True)
     linked_pattern_id: int = Field(foreign_key="patterns.id", primary_key=True)
@@ -40,6 +43,13 @@ engine = create_engine(sqlite_url, echo=True)
 
 SessionDep = Annotated[Session, Depends(get_session)]
 app = FastAPI()
+
+@app.on_event("startup")
+def create_database():
+    if os.path.exists("apl.db"):
+        os.remove("apl.db")
+    load_data()
+
 
 def get_pattern(pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
     pattern = session.get(Patterns, pattern_id)

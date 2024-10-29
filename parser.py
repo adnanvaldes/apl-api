@@ -148,7 +148,7 @@ def load_data_to_database():
     conn.commit()
     conn.close()
 
-def main():
+def load_data():
     create_database()
 
     for filename in os.listdir(PATTERNS_DIR):
@@ -182,4 +182,4 @@ def main():
     load_data_to_database()
 
 if __name__ == "__main__":
-    main()
+    load_data()
