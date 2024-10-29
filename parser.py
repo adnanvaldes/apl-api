@@ -13,12 +13,14 @@ links = {}
 backlinks = {}
 patterns_data = {}
 
+
 def strip_angle_bracket(text):
     """
     Remove ">" from the start of lines in block quotes and citations
     """
     stripped_lines = [line.lstrip(">").strip() for line in text.splitlines()]
     return "\n".join(stripped_lines).strip()
+
 
 def split_content(text):
     """
@@ -33,23 +35,30 @@ def split_content(text):
 
     sections = ["Problem", "Solution", "Related Patterns"]
     # Match the header pattern e.g., ('## Problem')
-    results = [re.search(rf'## {section}\n(.*?)(##|$)', body, re.DOTALL) for section in sections]
+    results = [
+        re.search(rf"## {section}\n(.*?)(##|$)", body, re.DOTALL)
+        for section in sections
+    ]
 
     try:
-        problem, solution, related = [match.group(1).strip() if match else "" for match in results]
+        problem, solution, related = [
+            match.group(1).strip() if match else "" for match in results
+        ]
     except AttributeError:
         raise ValueError("Missing one or more sections")
 
     return problem, solution, related, references.strip()
 
+
 def extract_name_and_id(filename):
     # Extract pattern name and number from filename
-    match = re.match(r'(.*?) \((\d+)\)\.md', filename)
+    match = re.match(r"(.*?) \((\d+)\)\.md", filename)
     if match:
         pattern_name = match.group(1).strip()
         pattern_id = int(match.group(2))
 
-    return pattern_name.lower(), pattern_id    
+    return pattern_name.lower(), pattern_id
+
 
 def extract_links(text):
     """
@@ -58,6 +67,7 @@ def extract_links(text):
     Returns a list of tuples, where the first item in the tuple is the pattern name, second is id
     """
     return re.findall(RELATED_PATTERN_RE, text)
+
 
 def extract_citation_details(references_text):
     """
@@ -71,7 +81,6 @@ def extract_citation_details(references_text):
 def extract_page_referece(text):
     # Matches citation format and uses capture group 1 to match a digit up to 10 times (\d{1,10}) to find page number
     page_ref_re = r"\[!cite\]- Alexander, Christopher. _A Pattern Language: Towns, Buildings, Construction_. Oxford University Press, 1977, p. (\d{1,10})"
-    print(re.match(page_ref_re, text).group(1))
     return re.match(page_ref_re, text).group(1)
 
 
@@ -83,11 +92,12 @@ def map_confidence_and_tag(text):
     confidence_map = {
         "#low-confidence": 1,
         "#medium-confidence": 2,
-        "#high-confidence": 3
-        }
-    
+        "#high-confidence": 3,
+    }
+
     # Remove "#" from beginning of string
     return confidence_map[match[0]], match[1][1:]
+
 
 def create_database():
     """
@@ -97,7 +107,8 @@ def create_database():
     cur = conn.cursor()
 
     # Create Patterns table
-    cur.execute("""
+    cur.execute(
+        """
     CREATE TABLE IF NOT EXISTS Patterns (
         id INTEGER PRIMARY KEY, 
         name TEXT NOT NULL,
@@ -107,10 +118,12 @@ def create_database():
         confidence INTEGER,
         tag TEXT
     );
-    """)
+    """
+    )
 
     # Create PatternLinks table
-    cur.execute("""
+    cur.execute(
+        """
     CREATE TABLE IF NOT EXISTS PatternLinks (
         pattern_id INTEGER,
         linked_pattern_id INTEGER,
@@ -118,10 +131,12 @@ def create_database():
         FOREIGN KEY (pattern_id) REFERENCES Patterns(id) ON DELETE CASCADE,
         FOREIGN KEY (linked_pattern_id) REFERENCES Patterns(id) ON DELETE CASCADE
     );
-    """)
+    """
+    )
 
     conn.commit()
     conn.close()
+
 
 def load_data_to_database():
     """
@@ -131,22 +146,38 @@ def load_data_to_database():
     cur = conn.cursor()
 
     # Insert patterns data
-    for pattern_id, (id, name, problem, solution, related, page_number, confidence, tag) in patterns_data.items():
-        cur.execute("""
+    for pattern_id, (
+        id,
+        name,
+        problem,
+        solution,
+        related,
+        page_number,
+        confidence,
+        tag,
+    ) in patterns_data.items():
+        cur.execute(
+            """
         INSERT INTO Patterns (id, name, problem, solution, page_number, confidence, tag)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (id, name, problem, solution, page_number, confidence, tag))
+        """,
+            (id, name, problem, solution, page_number, confidence, tag),
+        )
 
     # Insert forward and backward links into PatternLinks table
     for pattern_id, linked_patterns in links.items():
         for linked_pattern in linked_patterns:
-            cur.execute("""
+            cur.execute(
+                """
             INSERT OR IGNORE INTO PatternLinks (pattern_id, linked_pattern_id)
             VALUES (?, ?)
-            """, (pattern_id, linked_pattern))
+            """,
+                (pattern_id, linked_pattern),
+            )
 
     conn.commit()
     conn.close()
+
 
 def load_data():
     create_database()
@@ -163,8 +194,17 @@ def load_data():
                 # Extract page_number, confidence, and tag from references section
                 page_number, confidence, tag = extract_citation_details(references)
 
-                patterns_data[pattern_id] = (pattern_id, pattern_name, problem, solution, related, page_number, confidence, tag)
-                
+                patterns_data[pattern_id] = (
+                    pattern_id,
+                    pattern_name,
+                    problem,
+                    solution,
+                    related,
+                    page_number,
+                    confidence,
+                    tag,
+                )
+
                 # Extract links from the 'related' section, not 'references'
                 links[pattern_id] = [int(link[1]) for link in extract_links(related)]
 
@@ -180,6 +220,7 @@ def load_data():
                 backlinks[linked_pattern] = [pattern_id]
 
     load_data_to_database()
+
 
 if __name__ == "__main__":
     load_data()

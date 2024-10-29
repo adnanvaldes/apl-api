@@ -1,15 +1,22 @@
 import pytest
 import re
 from parser import (
-    strip_angle_bracket, split_content, extract_name_and_id,
-    extract_links, extract_citation_details, extract_page_referece,
-    map_confidence_and_tag, create_database
+    strip_angle_bracket,
+    split_content,
+    extract_name_and_id,
+    extract_links,
+    extract_citation_details,
+    extract_page_referece,
+    map_confidence_and_tag,
+    create_database,
 )
+
 
 def test_strip_angle_bracket():
     text = ">This is a line.\n>Another line."
     expected = "This is a line.\nAnother line."
     assert strip_angle_bracket(text) == expected
+
 
 def test_split_content():
     text = "## Problem\nProblem text\n## Solution\nSolution text\n## Related Patterns\nRelated text\n---\nReference text"
@@ -45,15 +52,16 @@ def test_map_confidence_and_tag():
     expected = (3, "APL/Town-Patterns/Local-Centers")
     assert map_confidence_and_tag(text) == expected
 
+
 def test_create_database(mocker):
     # Mock sqlite3 connection and cursor
     mock_conn = mocker.patch("sqlite3.connect")
     mock_cur = mock_conn.return_value.cursor.return_value
 
     create_database()
-    
 
-    mock_cur.execute.assert_any_call("""
+    mock_cur.execute.assert_any_call(
+        """
     CREATE TABLE IF NOT EXISTS Patterns (
         id INTEGER PRIMARY KEY, 
         name TEXT NOT NULL,
@@ -63,8 +71,10 @@ def test_create_database(mocker):
         confidence INTEGER,
         tag TEXT
     );
-    """)
-    mock_cur.execute.assert_any_call("""
+    """
+    )
+    mock_cur.execute.assert_any_call(
+        """
     CREATE TABLE IF NOT EXISTS PatternLinks (
         pattern_id INTEGER,
         linked_pattern_id INTEGER,
@@ -72,4 +82,5 @@ def test_create_database(mocker):
         FOREIGN KEY (pattern_id) REFERENCES Patterns(id) ON DELETE CASCADE,
         FOREIGN KEY (linked_pattern_id) REFERENCES Patterns(id) ON DELETE CASCADE
     );
-    """)
+    """
+    )
