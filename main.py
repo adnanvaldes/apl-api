@@ -1,9 +1,12 @@
+import os
+from contextlib import asynccontextmanager
+
 from typing import Annotated, List
-from fastapi import FastAPI, Depends, HTTPException, Query
-from sqlmodel import Field, Session, SQLModel, create_engine, select
 from pydantic import BaseModel
 
-import os
+from fastapi import FastAPI, Depends, HTTPException, Query
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+
 from parser import load_data
 
 class PatternLinks(SQLModel, table=True):
@@ -37,18 +40,21 @@ def get_session():
     with Session(engine) as session:
         yield session
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if os.path.exists("apl.db"):
+        os.remove("apl.db")
+    load_data()
+    yield
+    if os.path.exists("apl.db"):
+        os.remove("apl.db")
+
 sqlite_file = "apl.db"
 sqlite_url = f"sqlite:///{sqlite_file}"
 engine = create_engine(sqlite_url, echo=True)
 
 SessionDep = Annotated[Session, Depends(get_session)]
-app = FastAPI()
-
-@app.on_event("startup")
-def create_database():
-    if os.path.exists("apl.db"):
-        os.remove("apl.db")
-    load_data()
+app = FastAPI(lifespan=lifespan)
 
 
 def get_pattern(pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
