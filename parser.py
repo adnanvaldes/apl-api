@@ -3,7 +3,7 @@ import re
 import sqlite3
 import sys
 
-PATTERNS_DIR = "/home/einhard/Desktop/apl-md/Patterns/"
+PATTERNS_DIR = "apl-md/Patterns"
 DATABASE = "apl.db"
 
 # Matches wiki-link style patterns e.g., [[Independent Regions (1)]]
