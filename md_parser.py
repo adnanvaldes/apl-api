@@ -53,7 +53,7 @@ def extract_name_and_id(filename):
         pattern_name = match.group(1).strip()
         pattern_id = int(match.group(2))
 
-    return pattern_name, pattern_id    
+    return pattern_name.lower(), pattern_id    
 
 def extract_links(text):
     """
@@ -69,12 +69,13 @@ def extract_citation_details(references_text):
     """
     location = extract_page_referece(references_text)
     confidence, tag = map_confidence_and_tag(references_text)
-    return location, confidence, tag
+    return location, confidence, tag.lower()
 
 
 def extract_page_referece(text):
     # Matches citation format and uses capture group 1 to match a digit up to 10 times (\d{1,10}) to find page number
-    page_ref_re = r"\[!cite\]- Alexander, Christopher. _A Pattern Language: Towns, Buildings, Construction_. Oxford University Press, 1977, p. (\d{1,10})."
+    page_ref_re = r"\[!cite\]- Alexander, Christopher. _A Pattern Language: Towns, Buildings, Construction_. Oxford University Press, 1977, p. (\d{1,10})"
+    print(re.match(page_ref_re, text).group(1))
     return re.match(page_ref_re, text).group(1)
 
 
