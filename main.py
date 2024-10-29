@@ -93,14 +93,20 @@ def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int
 def get_pattern_by_name(pattern_name: str, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
     statement = select(Patterns).where(Patterns.name == pattern_name.lower())
     pattern = session.exec(statement).first()
-    
+
     return get_pattern(pattern_id=pattern.id, session=session, depth=depth)
 
-@app.get("/patterns/location/{location}")
+@app.get("/patterns/location/{location}", response_model=Patterns)
 def get_pattern_by_location(location: int, session: SessionDep) -> Patterns:
-    statement = select(Patterns).where(Patterns.location == location)
+    # Find the pattern with the highest location less than or equal to the specified location
+    statement = select(Patterns).where(Patterns.location <= location).order_by(Patterns.location.desc())
+    closest_pattern = session.exec(statement).first()
 
-    return session.exec(statement).first()
+    if closest_pattern is None:
+        raise HTTPException(status_code=404, detail="No pattern found at or below the specified location, first pattern at location = 10")
+
+    return closest_pattern
+
 
 @app.get("/patterns/confidence/{confidence}", response_model=List[Patterns])
 def get_patterns_by_confidence(confidence: int, session: SessionDep) -> List[Patterns]:
