@@ -29,7 +29,7 @@ class PatternResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
+        
 def get_session():
     with Session(engine) as session:
         yield session
@@ -93,4 +93,18 @@ def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int
 def get_pattern_by_name(pattern_name: str, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
     statement = select(Patterns).where(Patterns.name == pattern_name.lower())
     pattern = session.exec(statement).first()
+    
     return get_pattern(pattern_id=pattern.id, session=session, depth=depth)
+
+@app.get("/patterns/location/{location}")
+def get_pattern_by_location(location: int, session: SessionDep) -> Patterns:
+    statement = select(Patterns).where(Patterns.location == location)
+
+    return session.exec(statement).first()
+
+@app.get("/patterns/confidence/{confidence}", response_model=List[Patterns])
+def get_patterns_by_confidence(confidence: int, session: SessionDep) -> List[Patterns]:
+    statement = select(Patterns).where(Patterns.confidence == confidence)
+    patterns = session.exec(statement).all()
+
+    return patterns
