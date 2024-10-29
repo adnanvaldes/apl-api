@@ -107,10 +107,16 @@ def get_pattern_by_location(location: int, session: SessionDep) -> Patterns:
 
     return closest_pattern
 
-
 @app.get("/patterns/confidence/{confidence}", response_model=List[Patterns])
 def get_patterns_by_confidence(confidence: int, session: SessionDep) -> List[Patterns]:
     statement = select(Patterns).where(Patterns.confidence == confidence)
+    patterns = session.exec(statement).all()
+
+    return patterns
+
+@app.get("/patterns/tag/{tag}", response_model=List[Patterns])
+def get_patterns_by_tag(tag: str, session: SessionDep) -> List[Patterns]:
+    statement = select(Patterns).where(Patterns.tag.like(f"%{tag}%"))
     patterns = session.exec(statement).all()
 
     return patterns
