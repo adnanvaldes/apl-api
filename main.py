@@ -91,49 +91,6 @@ def get_pattern_by_id(pattern_id: int, session: SessionDep, depth: Annotated[int
 
 @app.get("/patterns/name/{pattern_name}", response_model=PatternResponse)
 def get_pattern_by_name(pattern_name: str, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0) -> PatternResponse:
-    # Query for the main pattern
     statement = select(Patterns).where(Patterns.name == pattern_name.lower())
     pattern = session.exec(statement).first()
-
-    if not pattern:
-        raise HTTPException(status_code=404, detail="Pattern not found")
-
-    if depth > 0:
-        # Recursively fetch forward links
-        forward_link_ids = session.exec(
-            select(PatternLinks.linked_pattern_id).where(PatternLinks.pattern_id == pattern.id)
-        ).all()
-        forward_links = session.exec(
-            select(Patterns).where(Patterns.id.in_(forward_link_ids))
-        ).all()
-        forward_link_responses = [
-            get_pattern_by_id(pattern_id=link.id, session=session, depth=depth - 1) for link in forward_links
-        ]
-
-        # Recursively fetch backlinks
-        backlink_ids = session.exec(
-            select(PatternLinks.pattern_id).where(PatternLinks.linked_pattern_id == pattern.id)
-        ).all()
-        backlinks = session.exec(
-            select(Patterns).where(Patterns.id.in_(backlink_ids))
-        ).all()
-        backlink_responses = [
-            get_pattern_by_id(pattern_id=link.id, session=session, depth=depth - 1) for link in backlinks
-        ]
-    else:
-        forward_link_responses = []
-        backlink_responses = []
-
-
-    # Return the pattern data with links
-    return PatternResponse(
-        id=pattern.id,
-        name=pattern.name.title(),
-        problem=pattern.problem,
-        solution=pattern.solution,
-        location=pattern.location,
-        confidence=pattern.confidence,
-        tag=pattern.tag,
-        forward_links=forward_link_responses,
-        backlinks=backlink_responses
-    )
+    return get_pattern(pattern_id=pattern.id, session=session, depth=depth)
