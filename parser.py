@@ -179,14 +179,25 @@ def load_data_to_database():
     conn.commit()
     conn.close()
 
+
 def update_subtree():
     try:
         subprocess.run(
-            ["git", "subtree", "pull", "--prefix", "apl-md", "https://github.com/zenodotus280/apl-md.git", "master", "--squash"],
-            check=True
+            [
+                "git",
+                "subtree",
+                "pull",
+                "--prefix",
+                "apl-md",
+                "https://github.com/zenodotus280/apl-md.git",
+                "master",
+                "--squash",
+            ],
+            check=True,
         )
     except subprocess.CalledProcessError as e:
         print(f"Failed to update subtree: {e}")
+
 
 def load_data():
     create_database()
