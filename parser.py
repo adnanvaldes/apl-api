@@ -2,6 +2,7 @@ import os
 import re
 import sqlite3
 import sys
+import subprocess
 
 PATTERNS_DIR = "apl-md/Patterns"
 DATABASE = "apl.db"
@@ -178,9 +179,18 @@ def load_data_to_database():
     conn.commit()
     conn.close()
 
+def update_subtree():
+    try:
+        subprocess.run(
+            ["git", "subtree", "pull", "--prefix", "apl-md", "https://github.com/zenodotus280/apl-md.git", "master", "--squash"],
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to update subtree: {e}")
 
 def load_data():
     create_database()
+    update_subtree()
 
     for filename in os.listdir(PATTERNS_DIR):
         if filename.endswith(".md"):

@@ -7,8 +7,16 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+
 from parser import load_data
 
+
+sqlite_file = "apl.db"
+sqlite_url = f"sqlite:///{sqlite_file}"
+engine = create_engine(sqlite_url)
+scheduler = AsyncIOScheduler()
 
 class PatternLinks(SQLModel, table=True):
     pattern_id: int = Field(foreign_key="patterns.id", primary_key=True)
@@ -50,9 +58,12 @@ async def lifespan(app: FastAPI):
     if os.path.exists("apl.db"):
         os.remove("apl.db")
     load_data()
+    scheduler.add_job(load_data, IntervalTrigger(days=1))
+    scheduler.start
     yield
     if os.path.exists("apl.db"):
         os.remove("apl.db")
+    scheduler.shutdown()
 
 
 sqlite_file = "apl.db"

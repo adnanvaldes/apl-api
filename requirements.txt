@@ -1,4 +1,5 @@
 fastapi[standard]
 sqlmodel
+apscheduler
 pytest
 pytest-mock
