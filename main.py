@@ -16,7 +16,6 @@ from parser import load_data
 sqlite_file = "apl.db"
 sqlite_url = f"sqlite:///{sqlite_file}"
 engine = create_engine(sqlite_url)
-scheduler = AsyncIOScheduler()
 
 class PatternLinks(SQLModel, table=True):
     pattern_id: int = Field(foreign_key="patterns.id", primary_key=True)
@@ -58,8 +57,9 @@ async def lifespan(app: FastAPI):
     if os.path.exists("apl.db"):
         os.remove("apl.db")
     load_data()
+    scheduler = AsyncIOScheduler()
     scheduler.add_job(load_data, IntervalTrigger(days=1))
-    scheduler.start
+    scheduler.start()
     yield
     if os.path.exists("apl.db"):
         os.remove("apl.db")
