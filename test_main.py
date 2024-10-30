@@ -37,7 +37,6 @@ def setup_database():
     os.remove("test_apl.db")
 
 
-
 @pytest.fixture(scope="function")
 def session():
     with Session(engine) as s:
