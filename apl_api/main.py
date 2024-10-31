@@ -10,7 +10,7 @@ from sqlmodel import Field, Session, SQLModel, create_engine, select
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from parser import load_data
+from apl_api.parser import load_data
 
 
 sqlite_file = "apl.db"

@@ -2,7 +2,7 @@
 import os
 import pytest
 from sqlmodel import SQLModel, Session, create_engine
-from main import (
+from apl_api.main import (
     app,
     get_pattern_by_id,
     get_pattern_by_name,

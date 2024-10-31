@@ -4,7 +4,10 @@ import sqlite3
 import sys
 import subprocess
 
-PATTERNS_DIR = "apl-md/Patterns"
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+patterns_path = os.path.join(base_dir, "apl-md", "Patterns")
+PATTERNS_DIR = patterns_path if os.path.exists(patterns_path) else "apl-md/Patterns"
+
 DATABASE = "apl.db"
 
 # Matches wiki-link style patterns e.g., [[Independent Regions (1)]]
@@ -180,10 +183,12 @@ def load_data_to_database():
     conn.close()
 
 def update_subtree():
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     try:
         subprocess.run(
             ["git", "subtree", "pull", "--prefix", "apl-md", "https://github.com/zenodotus280/apl-md.git", "master", "--squash"],
-            check=True
+            check=True,
+            cwd=project_root
         )
     except subprocess.CalledProcessError as e:
         print(f"Failed to update subtree: {e}")

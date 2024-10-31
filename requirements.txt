@@ -1,5 +1,5 @@
-fastapi[standard]
-sqlmodel
-apscheduler
-pytest
-pytest-mock
+fastapi>=0.115.0<=0.116.0
+sqlmodel==0.0.22
+apscheduler==3.10.4
+pytest==8.3.3
+pytest-mock==3.14.0

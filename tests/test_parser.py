@@ -1,6 +1,6 @@
 import pytest
 import re
-from parser import (
+from apl_api.parser import (
     strip_angle_bracket,
     split_content,
     extract_name_and_id,
