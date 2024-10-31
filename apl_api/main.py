@@ -17,6 +17,7 @@ sqlite_file = "apl.db"
 sqlite_url = f"sqlite:///{sqlite_file}"
 engine = create_engine(sqlite_url)
 
+
 class PatternLinks(SQLModel, table=True):
     pattern_id: int = Field(foreign_key="patterns.id", primary_key=True)
     linked_pattern_id: int = Field(foreign_key="patterns.id", primary_key=True)
