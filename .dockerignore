@@ -1,0 +1,9 @@
+# Exclude unnecessary directories and files
+__pycache__/
+.pytest_cache/
+tests/
+pyproject.toml
+*.pyc
+*.pyo
+*.pyd
+*.github
