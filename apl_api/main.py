@@ -23,7 +23,6 @@ async def lifespan(app: FastAPI):
         os.remove("apl.db")
     scheduler.shutdown()
 
+
 app = FastAPI(lifespan=lifespan)
 app.include_router(router)
-
-

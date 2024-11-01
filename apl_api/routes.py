@@ -8,11 +8,14 @@ from apl_api.models import engine, PatternLinks, PatternResponse, Patterns
 
 router = APIRouter()
 
+
 def get_session():
     with Session(engine) as session:
         yield session
 
-SessionDep = Annotated[Session, Depends(get_session)]     
+
+SessionDep = Annotated[Session, Depends(get_session)]
+
 
 @router.get("/", include_in_schema=False)
 async def index():
@@ -71,6 +74,7 @@ def get_patterns_by_confidence(confidence: int, session: SessionDep) -> List[Pat
 def get_patterns_by_tag(tag: str, session: SessionDep) -> List[Patterns]:
     statement = select(Patterns).where(Patterns.tag.like(f"%{tag}%"))
     return session.exec(statement).all()
+
 
 def get_pattern(
     pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0
