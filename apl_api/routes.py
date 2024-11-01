@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import RedirectResponse
 from typing import Annotated, List
 from sqlmodel import Session, select
 
@@ -12,6 +13,11 @@ def get_session():
         yield session
 
 SessionDep = Annotated[Session, Depends(get_session)]     
+
+@router.get("/", include_in_schema=False)
+async def index():
+    return RedirectResponse(url="/docs")
+
 
 @router.get("/patterns/id/{id}", response_model=PatternResponse)
 def get_pattern_by_id(
