@@ -16,20 +16,25 @@ def get_session():
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
+tags_metadata = [
+    {"name" : "patterns",
+     "description" : "Operations to get and find different patterns"
+    }
+]
 
 @router.get("/", include_in_schema=False)
 async def index():
     return RedirectResponse(url="/docs")
 
 
-@router.get("/patterns/id/{id}", response_model=PatternResponse)
+@router.get("/id/{id}", response_model=PatternResponse, tags=["patterns"])
 def get_pattern_by_id(
     pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 1
 ) -> PatternResponse:
     return get_pattern(pattern_id=pattern_id, session=session, depth=depth)
 
 
-@router.get("/patterns/name/{pattern_name}", response_model=PatternResponse)
+@router.get("/name/{pattern_name}", response_model=PatternResponse, tags=["patterns"])
 def get_pattern_by_name(
     pattern_name: str, session: SessionDep, depth: Annotated[int, Query(le=3)] = 1
 ) -> PatternResponse:
@@ -39,13 +44,13 @@ def get_pattern_by_name(
     return get_pattern(pattern_id=pattern.id, session=session, depth=depth)
 
 
-@router.get("/patterns/find/{name}", response_model=List[Patterns])
+@router.get("/find/{name}", response_model=List[Patterns], tags=["patterns"])
 def find_pattern_by_name(name: str, session: SessionDep) -> List[Patterns]:
     statement = select(Patterns).where(Patterns.name.like(f"%{name}%"))
     return session.exec(statement).all()
 
 
-@router.get("/patterns/page_number/{page_number}", response_model=Patterns)
+@router.get("/page_number/{page_number}", response_model=Patterns, tags=["patterns"])
 def get_pattern_by_page_number(page_number: int, session: SessionDep) -> Patterns:
     # Find the pattern with the highest page_number less than or equal to the specified page_number
     statement = (
@@ -64,13 +69,13 @@ def get_pattern_by_page_number(page_number: int, session: SessionDep) -> Pattern
     return closest_pattern
 
 
-@router.get("/patterns/confidence/{confidence}", response_model=List[Patterns])
+@router.get("/confidence/{confidence}", response_model=List[Patterns], tags=["patterns"])
 def get_patterns_by_confidence(confidence: int, session: SessionDep) -> List[Patterns]:
     statement = select(Patterns).where(Patterns.confidence == confidence)
     return session.exec(statement).all()
 
 
-@router.get("/patterns/tag/{tag}", response_model=List[Patterns])
+@router.get("/tag/{tag}", response_model=List[Patterns], tags=["patterns"])
 def get_patterns_by_tag(tag: str, session: SessionDep) -> List[Patterns]:
     statement = select(Patterns).where(Patterns.tag.like(f"%{tag}%"))
     return session.exec(statement).all()
