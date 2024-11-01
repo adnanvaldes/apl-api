@@ -32,7 +32,7 @@ app = FastAPI(
     contact=settings.contact,
     license_info=settings.license_info,
     swagger_ui_parameters=settings.swagger_ui,
-    lifespan=lifespan
-    )
-    
+    lifespan=lifespan,
+)
+
 app.include_router(router)
