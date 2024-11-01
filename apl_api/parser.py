@@ -205,6 +205,9 @@ def update_subtree():
 
 
 def load_data():
+    if os.path.exists("apl.db"):
+        os.remove("apl.db")
+        
     create_database()
     update_subtree()
 

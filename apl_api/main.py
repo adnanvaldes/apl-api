@@ -14,8 +14,6 @@ from apl_api.parser import load_data
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if os.path.exists("apl.db"):
-        os.remove("apl.db")
     load_data()
     scheduler = AsyncIOScheduler()
     scheduler.add_job(load_data, IntervalTrigger(days=1))
