@@ -24,14 +24,14 @@ async def index():
 
 @router.get("/patterns/id/{id}", response_model=PatternResponse)
 def get_pattern_by_id(
-    pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0
+    pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 1
 ) -> PatternResponse:
     return get_pattern(pattern_id=pattern_id, session=session, depth=depth)
 
 
 @router.get("/patterns/name/{pattern_name}", response_model=PatternResponse)
 def get_pattern_by_name(
-    pattern_name: str, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0
+    pattern_name: str, session: SessionDep, depth: Annotated[int, Query(le=3)] = 1
 ) -> PatternResponse:
     statement = select(Patterns).where(Patterns.name == pattern_name.lower())
     pattern = session.exec(statement).first()
@@ -77,7 +77,7 @@ def get_patterns_by_tag(tag: str, session: SessionDep) -> List[Patterns]:
 
 
 def get_pattern(
-    pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 0
+    pattern_id: int, session: SessionDep, depth: Annotated[int, Query(le=3)] = 1
 ) -> PatternResponse:
     pattern = session.get(Patterns, pattern_id)
     if not pattern:

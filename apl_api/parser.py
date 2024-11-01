@@ -3,12 +3,13 @@ import re
 import sqlite3
 import sys
 import subprocess
+from apl_api.config import settings
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 patterns_path = os.path.join(base_dir, "apl-md", "Patterns")
 PATTERNS_DIR = patterns_path if os.path.exists(patterns_path) else "apl-md/Patterns"
 
-DATABASE = "apl.db"
+DATABASE = settings.database
 
 # Matches wiki-link style patterns e.g., [[Independent Regions (1)]]
 RELATED_PATTERN_RE = re.compile(r"\[\[(.*?) \((\d+)\)\]\]")

@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 from typing import List
 from sqlmodel import Field, SQLModel, create_engine
+from apl_api.config import settings
 
-sqlite_file = "apl.db"
+sqlite_file = settings.database
 sqlite_url = f"sqlite:///{sqlite_file}"
 engine = create_engine(sqlite_url)
 
