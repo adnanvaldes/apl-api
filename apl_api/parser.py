@@ -198,7 +198,7 @@ def update_subtree():
                 "--squash",
             ],
             check=True,
-            cwd=project_root
+            cwd=project_root,
         )
     except subprocess.CalledProcessError as e:
         print(f"Failed to update subtree: {e}")
@@ -207,7 +207,7 @@ def update_subtree():
 def load_data():
     if os.path.exists("apl.db"):
         os.remove("apl.db")
-        
+
     create_database()
     update_subtree()
 
