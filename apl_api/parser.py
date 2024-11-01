@@ -198,6 +198,7 @@ def update_subtree():
                 "--squash",
             ],
             check=True,
+            cwd=project_root
         )
     except subprocess.CalledProcessError as e:
         print(f"Failed to update subtree: {e}")
