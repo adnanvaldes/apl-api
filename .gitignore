@@ -2,6 +2,7 @@
 scratch.py
 *.db
 patterns/
+apl-md/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
