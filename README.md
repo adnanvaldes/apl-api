@@ -100,7 +100,12 @@ This API extends zenodotus280's [patternlanguage.cc](https://patternlanguage.cc)
 
 ## Installation and examples
 
-The easiest way to run this API is to use [Docker](https://www.docker.com/). Clone this repository with the following command:
+The easiest way to run this API is to use [Docker](https://www.docker.com/). You can pull the latest image from Docker hub with:
+
+```bash
+docker pull einhard/apl_api
+```
+...or you can clone this repository with the following command:
 
 ```bash
 git clone https://github.com/adnanvaldes/apl-api.git
@@ -115,7 +120,7 @@ docker build -t apl_api .
 
 *Note: you can name the container image whatever you want; in this case, we are naming the image `apl_api`. Also, notice the period `.` at the end of the command.*
 
-Once build, you can run the image with:
+Once built or pulled, you can run the image with:
 
 ```bash
 docker run -d --name apl_api -p 8000:80 apl_api
