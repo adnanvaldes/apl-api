@@ -1,4 +1,4 @@
-## 0. Contents
+## Contents
 
 - [Introduction](#Introduction)
 - [API Endpoints](#API%20Endpoints)

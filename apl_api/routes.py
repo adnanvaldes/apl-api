@@ -17,10 +17,9 @@ def get_session():
 SessionDep = Annotated[Session, Depends(get_session)]
 
 tags_metadata = [
-    {"name" : "patterns",
-     "description" : "Operations to get and find different patterns"
-    }
+    {"name": "patterns", "description": "Operations to get and find different patterns"}
 ]
+
 
 @router.get("/", include_in_schema=False)
 async def index():
@@ -69,7 +68,9 @@ def get_pattern_by_page_number(page_number: int, session: SessionDep) -> Pattern
     return closest_pattern
 
 
-@router.get("/confidence/{confidence}", response_model=List[Patterns], tags=["patterns"])
+@router.get(
+    "/confidence/{confidence}", response_model=List[Patterns], tags=["patterns"]
+)
 def get_patterns_by_confidence(confidence: int, session: SessionDep) -> List[Patterns]:
     statement = select(Patterns).where(Patterns.confidence == confidence)
     return session.exec(statement).all()
