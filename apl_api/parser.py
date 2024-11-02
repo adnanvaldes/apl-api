@@ -196,6 +196,7 @@ def update_markdown():
     except subprocess.CalledProcessError as e:
         print(f"Failed to update subtree: {e}")
 
+
 def download_markdown():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     try:
