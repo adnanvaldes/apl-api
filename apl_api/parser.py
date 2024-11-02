@@ -5,10 +5,6 @@ import sys
 import subprocess
 from apl_api.config import settings
 
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-patterns_path = os.path.join(base_dir, "apl-md", "Patterns")
-PATTERNS_DIR = patterns_path if os.path.exists(patterns_path) else "apl-md/Patterns"
-
 DATABASE = settings.database
 
 # Matches wiki-link style patterns e.g., [[Independent Regions (1)]]
@@ -184,19 +180,30 @@ def load_data_to_database():
     conn.close()
 
 
-def update_subtree():
+def update_markdown():
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+    print(project_root)
+    try:
+        subprocess.run(
+            [
+                "git",
+                "pull",
+                "https://github.com/zenodotus280/apl-md.git",
+            ],
+            check=True,
+            cwd=project_root,
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to update subtree: {e}")
+
+def download_markdown():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     try:
         subprocess.run(
             [
                 "git",
-                "subtree",
-                "pull",
-                "--prefix",
-                "apl-md",
+                "clone",
                 "https://github.com/zenodotus280/apl-md.git",
-                "master",
-                "--squash",
             ],
             check=True,
             cwd=project_root,
@@ -205,12 +212,16 @@ def update_subtree():
         print(f"Failed to update subtree: {e}")
 
 
-def load_data():
+def update_data():
     if os.path.exists("apl.db"):
         os.remove("apl.db")
 
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    patterns_path = os.path.join(base_dir, "apl-md", "Patterns")
+    PATTERNS_DIR = patterns_path if os.path.exists(patterns_path) else "apl-md/Patterns"
+
     create_database()
-    update_subtree()
+    update_markdown()
 
     for filename in os.listdir(PATTERNS_DIR):
         if filename.endswith(".md"):

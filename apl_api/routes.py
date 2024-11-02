@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from typing import Annotated, List
 from sqlmodel import Session, select
 
-from apl_api.parser import load_data
+from apl_api.parser import update_data
 from apl_api.models import engine, PatternLinks, PatternResponse, Patterns
 
 router = APIRouter()

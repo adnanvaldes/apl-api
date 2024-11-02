@@ -6,16 +6,17 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from apl_api.routes import router
-from apl_api.parser import load_data
+from apl_api.parser import update_data, download_markdown
 from apl_api.config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    load_data()
+    download_markdown()
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(load_data, IntervalTrigger(days=settings.update_interval))
+    scheduler.add_job(update_data, IntervalTrigger(days=settings.update_interval))
     scheduler.start()
+    update_data()
     yield
     if os.path.exists(settings.database):
         os.remove(settings.database)
