@@ -49,8 +49,9 @@ This API extends zenodotus280's [patternlanguage.cc](https://patternlanguage.cc)
 
 - **Format**: JSON
 - **Response Structure**:
-  ```json
-{
+
+```json
+  {
   "id": 253,
   "name": "Things From Your Life",
   "problem": "“Decor” and the conception of “interior design” have spread so widely, that very often people forget their instinct for the things they really want to keep around them.",
@@ -94,8 +95,8 @@ This API extends zenodotus280's [patternlanguage.cc](https://patternlanguage.cc)
       "backlinks": []
     }
   ]
-}
-  ```
+  }
+```
 
 ## Installation and examples
 
