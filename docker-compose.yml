@@ -1,0 +1,7 @@
+version: "3"
+services:
+  apl_api:
+    container_name: "apl-api"
+    build: .
+    ports:
+      - "8532:80"
